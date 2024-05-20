@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String    @unique
+  password        String
+  profileImage    String?
+  isActive        Boolean   @default(true)
+  isEmailVerified Boolean   @default(false)
+  lastLogin       DateTime?
+  token           Token[]
+  role            Role[]
+  projects        Project[] @relation(name: "ProjectCollaborators")
+  completedTasks  Task[]    @relation(name: "TaskCompletedBy")
+  createdProjects Project[] @relation(name: "ProjectCreator")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id            String   @id @default(uuid())
+  name          String
+  description   String
+  deliveryDate  DateTime @default(now())
+  client        String
+  creatorId     String?
+  creator       User?    @relation(fields: [creatorId], references: [id], name: "ProjectCreator")
+  tasks         Task[]   @relation(name: "ProjectTasks")
+  collaborators User[]   @relation(name: "ProjectCollaborators")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Task {
+  id           String       @id @default(uuid())
+  name         String
+  description  String
+  status       Boolean      @default(false)
+  deliveryDate DateTime     @default(now())
+  priority     PriorityType
+  projectId    String?
+  project      Project?     @relation(fields: [projectId], references: [id], name: "ProjectTasks")
+  completedId  String?
+  completed    User?        @relation(fields: [completedId], references: [id], name: "TaskCompletedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id         String       @id @default(uuid())
+  name       String       @unique
+  permission Permission[] @relation()
+  user       User[]       @relation()
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Permission {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  groupName String
+  role      Role[]   @relation()
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  url       String
+  type      String
+  publicId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Token {
+  id          String    @id @default(uuid())
+  token       String
+  userId      String
+  type        TokenType
+  expires     DateTime?
+  blacklisted Boolean   @default(false)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum TokenType {
+  REFRESH
+  RESET_PASSWORD
+  VERIFY_EMAIL
+}
+
+enum PriorityType {
+  LOW
+  MEDIUM
+  HIGH
+}
